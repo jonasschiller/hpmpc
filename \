@@ -41,14 +41,21 @@
 #define MM_AES_DEC_LAST _mm_aesdeclast_si128
 #define COUNT_TYPE __m128i
     #endif
-COUNT_TYPE key[num_players*multiplier][11]{0};
 #else
 #define USE_SSL_AES 1
 #include "../crypto/aes/AES_SSL.h"
 #define COUNT_TYPE uint64_t
-EVP_CIPHER_CTX* key[num_players*multiplier];
 #endif
 
+#endif
+
+class Randomizer
+{
+    private:
+#if defined(__VAES__) || defined(__SSE2__)
+COUNT_TYPE key[num_players*multiplier][11]{0};
+#else
+EVP_CIPHER_CTX* key[num_players*multiplier];
 #endif
 
 #if RANDOM_ALGORITHM == 0
@@ -70,6 +77,9 @@ DATATYPE counter[num_players*multiplier][BUFFER_SIZE] = {0};
 #endif
 #endif
 #endif
+int num_generated[num_players*multiplier] = {0};
+    public:
+
 
 
 
@@ -145,40 +155,93 @@ DATATYPE getRandomVal(int link_id)
 #endif
 }
 
-/* DATATYPE getRandomVal(int link_id) */
-/* { */
-/*    if(num_generated[link_id] == BITLENGTH -1) */
-/*    { */
-/*        num_generated[link_id] = 0; */
-/*        xor_shift(srng[link_id]); */
-/*    } */
-/*    num_generated[link_id] += 1; */
-/*    return srng[link_id][num_generated[link_id] -1]; */
-/* } */
-
-/* #if RANDOM_ALGORITHM == 0 */
-/* void getRandomVal_BITS_PER_REG(DATATYPE* a, int link_id) */
-/* { */
-/*        xor_shift(srng[link_id]); */
-/*        for (int i = 0; i < BITS_PER_REG; i++) { */
-/*            a[i] = srng[link_id][i]; */
-/*        } */
-/* } */
-/* #endif */
-
 DATATYPE getRandomVal(int link_id1, int link_id2)
 {
     return getRandomVal( num_players * (link_id1+1) + link_id2);
 }
-uint64_t shuffle_table[4];
-// The actual algorithm
-uint64_t next(void)
+
+void init_srng(uint64_t link_id, uint64_t link_seed)
 {
-    uint64_t s1 = shuffle_table[0];
-    uint64_t s0 = shuffle_table[1];
-    uint64_t result = s0 + s1;
-    shuffle_table[0] = s0;
-    s1 ^= s1 << 23;
-    shuffle_table[1] = s1 ^ s0 ^ (s1 >> 18) ^ (s0 >> 5);
-    return result;
+    #if RANDOM_ALGORITHM == 0
+    UINT_TYPE gen_seeds[DATTYPE];
+   for (int i = 0; i < DATTYPE; i++) {
+      gen_seeds[i] = link_seed * (i+1); // replace with independant seeds in the future
+   }
+/* int incr = (DATTYPE -1) / 64 + 1; */
+/* for (int i = 0; i < 64; i+=incr) { */
+/* orthogonalize(gen_seeds+i, srng[link_id]+i); */
+orthogonalize_boolean(gen_seeds, srng[link_id]);
+
+#elif RANDOM_ALGORITHM == 1
+    UINT_TYPE gen_keys[11][DATTYPE*128/BITLENGTH];
+    for (int i = 0; i < 11; i++) {
+        for (int j = 0; j < DATTYPE*128/BITLENGTH; j++) {
+            gen_keys[i][j] = link_seed * ((i+1)*j); // replace with independant seeds in the future
+        }
+    }
+    for (int i = 0; i < 11; i++) {
+            for(int j = 0; j < DATTYPE*128/BITLENGTH; j++)
+                orthogonalize_boolean(gen_keys[i]+j, key[link_id][i]+j);
+            }
+    
+#elif RANDOM_ALGORITHM == 2
+
+
+
+
+#if DATTYPE >= 128
+    int incr = (DATTYPE -1) / 64 + 1;
+#else 
+int incr = (sizeof(COUNT_TYPE)*8 - 1) /64 +1;
+#endif
+    uint64_t gen_keys[11][incr];
+    for (int i = 0; i < 11; i++) {
+        for (int j = 0; j < incr; j++) {
+            gen_keys[i][j] = link_seed * ((i+1)*j); // replace with independant seeds in the future
+        }
+    }
+#if USE_SSL_AES
+    for (int i = 0; i < 11; i++) {
+    key[link_id] = EVP_CIPHER_CTX_new();
+    EVP_EncryptInit_ex(key[link_id], EVP_aes_128_cbc(), NULL, (unsigned char*) gen_keys[i], (unsigned char*) gen_keys[i]);
+    }
+#else
+    for (int i = 0; i < 11; i++) {
+    memcpy(&key[link_id][i], gen_keys[i], incr*sizeof(uint64_t));
+    }
+
+    /* for (int j = 0; j < DATTYPE*2; j++) { */
+        /*     gen_keys[j] = link_seed * (j+1); // replace with independant seeds in the future */
+        
+    /* } */
+        /*     orthogonalize(gen_keys, key[link_id]); */
+        /*     orthogonalize(gen_keys+64, key[link_id]+1); */
+
+
+#endif
+#endif
+
+    for (int i = 0; i < 11; i++) {
+        init_buffers(link_id);;
+    }
+
+#if MAL == 1
+
+    // Ensure all players have the same initial state
+    /* initial state */
+    uint32_t state[8] = {
+        0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+        0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
+    };
+
+    for(int i = 0; i < num_players-1; i++)
+    {
+        for(int j = 0; j < 8; j++)
+            hash_val[i][j] = state[j];
+    }
+
+#endif
+
 }
+
+};

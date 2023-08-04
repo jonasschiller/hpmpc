@@ -1,5 +1,38 @@
 #pragma once
 #include "../networking/buffers.h"
+#include "../utils/verifier.hpp"
+class Init_Protocol
+{
+    private:
+        Verifier verifier;
+        sender_args sending_args[num_players];
+        receiver_args receiving_args[num_players];
+
+        #if PRE == 1
+        sender_args sending_args_pre[num_players];
+        receiver_args receiving_args_pre[num_players];
+        #endif
+
+
+
+void init_circuit()
+{
+for(int t=0;t<(num_players-1);t++) { // ???
+    #if LIVE == 1 
+    receiving_args[t].elements_to_rec.push_back(0);
+    sending_args[t].elements_to_send.push_back(0);
+#endif
+    #if PRE == 1
+    receiving_args_pre[t].elements_to_rec.push_back(0);
+    sending_args_pre[t].elements_to_send.push_back(0);
+    receiving_args_pre[t].rec_rounds = 1;
+    sending_args_pre[t].send_rounds = 1;
+    #endif
+    }
+#if MAL == 1
+        compare_views_init();
+#endif
+}
 
 void send_()
 {
@@ -75,7 +108,7 @@ void communicate_()
 
 void store_compare_view_init(int player_id)
 {
-elements_to_compare[player_id]+=1;
+    verifier.add_element_to_compare(player_id);
 }
 
 void compare_views_init()
@@ -87,7 +120,7 @@ void compare_views_init()
                 #endif
     for(int player_id = 0; player_id < num_players*multiplier; player_id++)
     {
-            if(elements_to_compare[player_id] > 0)
+            if(verifier.get_elements_to_compare(player_id) > 0)
             {
                 //exchange 1 sha256 hash. Do to DATATYPE constraints it may need to be split up to multiple chunks
                 for(int i = 0; i < hash_chunks_to_send; i++)
@@ -151,7 +184,7 @@ void compare_views_init()
 
         for(int player_id = 0; player_id < num_players*multiplier; player_id++)
     {
-            if(elements_to_compare[player_id] > 0)
+            if(verifier.get_elements_to_compare(player_id) > 0)
             {
                 //exchange 1 sha256 hash. Do to DATATYPE constraints it may need to be split up to multiple chunks
                 for(int i = 0; i < hash_chunks_to_send; i++)
@@ -228,28 +261,28 @@ void finalize_(std::string* ips)
 {
 for(int t=0;t<(num_players-1);t++) {
     int offset = 0;
-    if(t >= player_id)
+    if(t >= PARTY)
         offset = 1; // player should not receive from itself
     receiving_args[t].player_count = num_players;
     receiving_args[t].received_elements = new DATATYPE*[receiving_args[t].rec_rounds]; //every thread gets its own pointer array for receiving elements
     
-    receiving_args[t].player_id = player_id;
+    receiving_args[t].player_id = PARTY;
     receiving_args[t].connected_to = t+offset;
     receiving_args[t].ip = ips[t];
     receiving_args[t].hostname = (char*)"hostname";
-    receiving_args[t].port = (int) base_port + player_id * (num_players-1) + t; //e.g. P0 receives on base port from P1, P2 on base port + num_players from P0 6000,6002
+    receiving_args[t].port = (int) base_port + PARTY * (num_players-1) + t; //e.g. P0 receives on base port from P1, P2 on base port + num_players from P0 6000,6002
     //init_srng(t, (t+offset) + player_id); 
 }
 for(int t=0;t<(num_players-1);t++) {
     int offset = 0;
-    if(t >= player_id)
+    if(t >= PARTY)
         offset = 1; // player should not send to itself
     sending_args[t].sent_elements = new DATATYPE*[sending_args[t].send_rounds];
     /* sending_args[t].elements_to_send[0] = 0; //input sharing with SRNGs */ 
-    sending_args[t].player_id = player_id;
+    sending_args[t].player_id = PARTY;
     sending_args[t].player_count = num_players;
     sending_args[t].connected_to = t+offset;
-    sending_args[t].port = (int) base_port + (t+offset) * (num_players -1) + player_id - 1 + offset; //e.g. P0 sends on base port + num_players  for P1, P2 on base port + num_players for P0 (6001,6000)
+    sending_args[t].port = (int) base_port + (t+offset) * (num_players -1) + PARTY - 1 + offset; //e.g. P0 sends on base port + num_players  for P1, P2 on base port + num_players for P0 (6001,6000)
     sending_args[t].sent_elements[0] = NEW(DATATYPE[sending_args[t].elements_to_send[0]]); // Allocate memory for first round
    
 }
@@ -285,21 +318,21 @@ void finalize_(std::string* ips, receiver_args* ra, sender_args* sa)
 {
 for(int t=0;t<(num_players-1);t++) {
     int offset = 0;
-    if(t >= player_id)
+    if(t >= PARTY)
         offset = 1; // player should not receive from itself
     ra[t].player_count = num_players;
 
     ra[t].received_elements = new DATATYPE*[ra[t].rec_rounds]; //every thread gets its own pointer array for receiving elements
     
-    ra[t].player_id = player_id;
+    ra[t].player_id = PARTY;
     ra[t].connected_to = t+offset;
     ra[t].ip = ips[t];
     ra[t].hostname = (char*)"hostname";
-    ra[t].port =(int) base_port + (t+offset) * (num_players -1) + player_id - 1 + offset; //e.g. P0 sends on base port + num_players  for P1, P2 on base port + num_players for P0 (6001,6000) 
+    ra[t].port =(int) base_port + (t+offset) * (num_players -1) + PARTY - 1 + offset; //e.g. P0 sends on base port + num_players  for P1, P2 on base port + num_players for P0 (6001,6000) 
 }
 for(int t=0;t<(num_players-1);t++) {
     int offset = 0;
-    if(t >= player_id)
+    if(t >= PARTY)
         offset = 1; // player should not send to itself
 #if PRE == 1 // only in actual preprocessing phase
     sa[t].send_rounds = 1;
@@ -307,10 +340,10 @@ for(int t=0;t<(num_players-1);t++) {
 
     sa[t].sent_elements = new DATATYPE*[sa[t].send_rounds];
     /* sending_args[t].elements_to_send[0] = 0; //input sharing with SRNGs */ 
-    sa[t].player_id = player_id;
+    sa[t].player_id = PARTY;
     sa[t].player_count = num_players;
     sa[t].connected_to = t+offset;
-    sa[t].port = (int) base_port + player_id * (num_players-1) + t; //e.g. P0 receives on base port from P1, P2 on base port + num_players from P0 6000,6002
+    sa[t].port = (int) base_port + PARTY * (num_players-1) + t; //e.g. P0 receives on base port from P1, P2 on base port + num_players from P0 6000,6002
     sa[t].sent_elements[0] = NEW(DATATYPE[sa[t].elements_to_send[0]]); // Allocate memory for first round
     share_buffer[t] = 0;  
 
@@ -328,4 +361,5 @@ sb = 0;
 
 
 
+};
 

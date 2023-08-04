@@ -74,7 +74,7 @@ reveal_length[0] = 1;
 reveal_length[1] = 1;
 reveal_length[2] = 1;
 
-total_comm = 2 - use_srng_for_inputs;
+total_comm = 2 - OPT_SHARE;
 
 // function
 
@@ -88,7 +88,7 @@ elements_per_round = new int[total_comm];
 
 //function
 
-int i = 1 - use_srng_for_inputs;
+int i = 1 - OPT_SHARE;
 for (int k = BITLENGTH >> 1; k > 0; k = k >> 1)
 {
     elements_per_round[i] = k*NUM_INPUTS;

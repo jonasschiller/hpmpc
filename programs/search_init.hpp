@@ -70,38 +70,9 @@ xor_shift__(seed, elements);
 /* funcTime("xor_shift",xor_shift__,seed, elements); */
 }
 
-//init 1 srng per link
 
-void init_comm() {
 
-// sharing
-input_length[0] = BITLENGTH * NUM_INPUTS;
-input_length[1] = BITLENGTH;
-
-// revealing
-reveal_length[0] = 1;
-reveal_length[1] = 1;
-reveal_length[2] = 1;
-
-total_comm = 2 - use_srng_for_inputs;
-
-// function
-
-for (int k = BITLENGTH >> 1; k > 0; k = k >> 1) {
- total_comm = total_comm + 1;
-}
-elements_per_round = new int[total_comm];
-
-// function
-
-int i = 1 - use_srng_for_inputs;
-for (int k = BITLENGTH >> 1; k > 0; k = k >> 1) {
- elements_per_round[i] = k * NUM_INPUTS;
- i += 1;
-}
-}
-
-void generateElements()
+void generateElements(DATATYPE* element_store)
 {
 UINT_TYPE (*origData)[DATTYPE] = NEW(UINT_TYPE[NUM_INPUTS][DATTYPE]);
 UINT_TYPE *origElements = NEW(UINT_TYPE[DATTYPE]);
@@ -130,12 +101,12 @@ DATATYPE* elements = NEW(DATATYPE[BITLENGTH]);
 
 insertManually(dataset, elements, origData, origElements, 1,7 , 200, 200);
 
-if(player_id == 0)
+if(PARTY == 0)
 {
-    player_input = (DATATYPE*) dataset;
+    element_store = (DATATYPE*) dataset;
 }
-else if(player_id == 1)
-    player_input = elements;
+else if(PARTY == 1)
+    element_store = elements;
 
 }
 

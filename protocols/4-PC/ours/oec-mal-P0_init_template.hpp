@@ -5,7 +5,7 @@ class OEC_MAL0_init
 bool optimized_sharing;
 public:
 OEC_MAL0_init(bool optimized_sharing) {this->optimized_sharing = optimized_sharing;}
-
+OEC_MAL0_init() {this->optimized_sharing = true;}
 
 XOR_Share public_val(DATATYPE a)
 {

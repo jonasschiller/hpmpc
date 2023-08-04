@@ -44,13 +44,11 @@
 #if LIVE == 1 && INIT == 0 && NO_INI == 0
 #include "protocols/CircuitInfo.hpp"
 #endif
-template <typename Init_Share, typename Live_Share, typename Pre_share, typename Init_Protocol, typename Live_Protocol, typename Pre_Protocol, typename Init_Function, typename Pre_Function, typename Live_Function, typename Result_Type,  typename Datatype_bool, typename Datatype_arithmetic>
+template <typename Live_Share, typename Live_Protocol, typename Result_Type,  typename Datatype_bool, typename Datatype_arithmetic>
 class ProtocolExecuter
 {
 private:
 Live_Function live_func;
-Init_Function init_func;
-Pre_Function pre_func;
 sender_args sending_args[num_players];
 receiver_args receiving_args[num_players];
 
@@ -64,7 +62,6 @@ receiver_args receiving_args_pre[num_players];
 Verifier verifier;
 #endif
 Mutexes mutexes;
-Init_Protocol p_init;
 Live_Protocol p_live;
 
 ProtocolExecuter(Function func)
@@ -81,114 +78,8 @@ int modulo(int x,int N){
 
 
 
-void init_circuit(std::string ips[])
-{
-
-/* clock_t time_init_start = clock (); */
-/* std::chrono::high_resolution_clock::time_point t_init = std::chrono::high_resolution_clock::now(); */
-#if PRINT == 1
-print("Initializing circuit ...\n");
-#endif
-
-    p_init = Init_Protocol(OPT_SHARE);
-    
-    #if INIT == 1 && NO_INI == 0
-    auto garbage = new Result_Type;
-    func<Init_Protocol,Init_Share>(p_init,garbage);
-
-    #if PRE == 1
-    p_init.finalize(ips,receiving_args_pre,sending_args_pre);
-    #else
-    p_init.finalize(ips); //TODO change to new version
-    #endif
-#endif
 
 
-
-}
-
-
-#if PRE == 1
-void preprocess_circuit(std::string ips[])
-{
-pthread_t sending_Threads_pre[num_players-1];
-pthread_t receiving_threads_pre[num_players-1];
-int ret_pre;
-
-    for(int t=0;t<(num_players-1);t++) {
-        ret_pre = pthread_create(&receiving_threads_pre[t], NULL, receiver, &receiving_args_pre[t]);
-        if (ret_pre){
-            print("ERROR; return code from pthread_create() is %d\n", ret_pre);
-            exit(-1);
-            }
-    }
-
-    /// Creating sending threads
-    for(int t=0;t<(num_players-1);t++) {
-        ret_pre = pthread_create(&sending_Threads_pre[t], NULL, sender, &sending_args_pre[t]);
-        if (ret_pre){
-            print("ERROR; return code from pthread_create() is %d\n", ret_pre);
-            exit(-1);
-            }
-    }
-
-
-
-    // waiting until all threads connected
-    mutexes.wait_for_connection();
-    print("All parties connected sucessfully, starting protocol and timer! \n");
-
-
-#if PRINT == 1
-print("Preprocessing phase ...\n");
-#endif
-clock_t time_pre_function_start = clock ();
-clock_gettime(CLOCK_REALTIME, &p1);
-std::chrono::high_resolution_clock::time_point p =
-            std::chrono::high_resolution_clock::now();
-
-#if PROTOCOL_PRE == -1
-            // receive only
-    #else
-        p_pre = PROTOCOL_PRE(OPT_SHARE);
-        auto garbage_PRE = new Result_Type;
-        func<Pre_Protocol,Pre_share>(p_pre,garbage_PRE);
-    #endif
-
-    mutexes.manual_send();    
-
-    mutexes.manual_receive();
-    
-    // Join threads to avoid address rebind
-    for(int t=0;t<(num_players-1);t++) {
-    pthread_join(receiving_threads_pre[t],NULL);
-    pthread_join(sending_Threads_pre[t],NULL);
-    }
-
-    double time_pre = std::chrono::duration_cast<std::chrono::microseconds>(
-                         std::chrono::high_resolution_clock::now() - p)
-                         .count();
-    /* searchComm__<Sharemind,DATATYPE>(protocol,*found); */
-    clock_gettime(CLOCK_REALTIME, &p2);
-    double accum_pre = ( p2.tv_sec - p1.tv_sec )
-    + (double)( p2.tv_nsec - p1.tv_nsec ) / (double) 1000000000L;
-    clock_t time_pre_function_finished = clock ();
-   
-
-    print("Time measured to perform preprocessing clock: %fs \n", double((time_pre_function_finished - time_pre_function_start)) / CLOCKS_PER_SEC);
-    print("Time measured to perform preprocessing getTime: %fs \n", accum_pre);
-    print("Time measured to perform preprocessing chrono: %fs \n", time_pre / 1000000);
-
-#if LIVE == 1
-    // reset all variables
-    mutexes.reset();
-    
-        //auto p_init = PROTOCOL_INIT(OPT_SHARE);
-        p_init.finalize(ips);
-#endif
-
-}
-#endif
 
 
 #if LIVE == 1
@@ -281,10 +172,8 @@ int ret;
 }
 #endif
 
-void executeProgram(int argc, char *argv[], int process_id, int process_num)
+void executeLive(int argc, char *argv[], int process_id, int process_num)
 {
-clock_gettime(CLOCK_REALTIME, &i1);
-
 
 Randomizer randomizer = Randomizer();
 #if MAL == 1

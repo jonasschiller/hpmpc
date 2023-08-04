@@ -2,17 +2,19 @@
 #include "../networking/buffers.h"
 #include <cstdint>
 
-#if MAL == 1
-#ifdef __SHA__
-#include "../crypto/sha/SHA_256_x86.h"
-#elif ARM == 1
-#include "../cryptosha/SHA_256_arm.h"
-#else
-#include "../crypto/sha/SHA_256.h"
-#endif
-#endif
 
+class Live_Protocol
+{
+    private:
+        sender_args sending_args[num_players];
+        receiver_args receiving_args[num_players];
 
+        #if PRE == 1
+        sender_args sending_args_pre[num_players];
+        receiver_args receiving_args_pre[num_players];
+        #endif
+
+    public:
 void send_live()
 {
 sb = 0;     
@@ -127,49 +129,6 @@ DATATYPE get_input_live()
 
 #if MAL == 1
 
-void perform_compare_view(int player_id)
-{
-    if (verify_buffer_index[player_id] == 0)
-        return;
-    #ifdef __SHA__
-    sha256_process_x86(hash_val[player_id], (uint8_t*) verify_buffer[player_id],sizeof(DATATYPE)*verify_buffer_index[player_id]);
-    #elif ARM == 1
-    sha256_process_arm(hash_val[player_id], (uint8_t*) verify_buffer[player_id],sizeof(DATATYPE)*verify_buffer_index[player_id]);
-    #else
-    sha256_process(hash_val[player_id], (uint8_t*) verify_buffer[player_id],sizeof(DATATYPE)*verify_buffer_index[player_id]);
-    #endif
-    verify_buffer_index[player_id] = 0;
-}
-
-/* void store_compare_view(int player_id, DATATYPE element_to_compare) */
-/* { */
-/* #if VERIFY_BUFFER > 0 */
-/* if(verify_buffer_index[player_id] == VERIFY_BUFFER) */
-/* { */
-/*     perform_compare_view(player_id); */
-/* } */
-/* #endif */
-/* verify_buffer[player_id][verify_buffer_index[player_id]] = element_to_compare; */
-/* verify_buffer_index[player_id] +=1; */
-/* } */
-
-void store_compare_view(int player_id, DATATYPE element_to_compare)
-{
-#if VERIFY_BUFFER > 0
-    #if VERIFY_BUFFER == 1
-    #ifdef __SHA__
-    sha256_process_x86(hash_val[player_id], (uint8_t*) &element_to_compare, sizeof(DATATYPE));
-    #else
-    sha256_process(hash_val[player_id], (uint8_t*) &element_to_compare, sizeof(DATATYPE));
-    #endif
-        return;
-        #endif
-if(verify_buffer_index[player_id] == VERIFY_BUFFER)
-    perform_compare_view(player_id);
-#endif
-verify_buffer[player_id][verify_buffer_index[player_id]] = element_to_compare;
-verify_buffer_index[player_id] +=1;
-}
 
 void compare_views() {
     #if DATTYPE >= 256
@@ -178,33 +137,10 @@ void compare_views() {
     #else
         int hash_chunks_to_send = (sizeof(uint32_t) * 8) / sizeof(DATATYPE);
 #endif
-    DATATYPE val_to_send[num_players*multiplier][hash_chunks_to_send];
-    DATATYPE val_recieved[num_players*multiplier][hash_chunks_to_send];
-    for (int player_id = 0; player_id < num_players*multiplier; player_id++) {
-        if (elements_to_compare[player_id] > 0) {
-            perform_compare_view(player_id);
-            // exchange 1 sha256 hash. Do to DATATYPE constraints it may need to be
-            // split up to multiple chunks
-            int index_slice = 0;
-            for (int i = 0; i < hash_chunks_to_send; i++) {
-#if DATTYPE < 64
-              uint8_t *addr_to_send =
-                  ((uint8_t *)(hash_val[player_id])) + index_slice;
-              index_slice +=
-                  sizeof(DATATYPE); // hash is stored in 4 byte chunks -> need
-                                    // smaller slices for small DATATYPE
-#elif DATTYPE >= 256
-              uint32_t values_to_send[8 * sizeof(DATATYPE) / (sizeof(uint32_t) * 8)]{0};
-              for (int j = 0; j < 8; j++)
-                values_to_send[j] = hash_val[player_id][j];
-              uint32_t *addr_to_send = values_to_send;
-#else
-              uint32_t *addr_to_send = hash_val[player_id] + index_slice;
-              index_slice +=
-                  sizeof(DATATYPE) / 4; // hash is stored in 4 byte chunks -> move
-                                        // up index by multiplier
-#endif
-              val_to_send[player_id][i] = *((DATATYPE *)addr_to_send);
+    DATATYPE val_to_send[num_players*2][hash_chunks_to_send];
+    DATATYPE val_recieved[num_players*2][hash_chunks_to_send];
+    verifier.get_hashes_to_send(val_to_send, hash_chunks_to_send);
+
               if (player_id == 3) //P0123
               {
                 if(P0 != PSELF)
@@ -363,4 +299,4 @@ DATATYPE retrieve_output_share()
     return preprocessed_outputs[preprocessed_outputs_index-1];
 }
 #endif
-
+};

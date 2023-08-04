@@ -1,5 +1,6 @@
 #include "config.h"
-#include "protocol_executer.hpp"
+/* #include "protocol_executer.hpp" */
+#include "init_protocol_executer.hpp"
 #include <sys/types.h>
 #include <sys/wait.h>
 
@@ -26,7 +27,7 @@ while ((wpid = wait(&status)) > 0); // this way, the father waits for all the ch
 
 //Father code (After all child processes end)
 #else
-    executeProgram(argc, argv, 0, 1); //child code
+    execute(argc, argv, 0, 1); //child code
 #endif
 return 0;
 }

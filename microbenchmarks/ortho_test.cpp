@@ -4,7 +4,8 @@
 #include "../utils/xorshift.h"
 #include "../crypto/sha/SHA_256.h"
 #include "../config.h"
-
+#include "../datatypes/k_sint.hpp"
+#include "../datatypes/k_bitset.hpp"
 #include <cstdint>
 #include <iostream>
 #include <string>
@@ -50,6 +51,8 @@ int main(int argc, char *argv[])
             /* return 1; */
         }
     }
+
+
     std::cout << "finished" << std::endl;
     return 0;
 }

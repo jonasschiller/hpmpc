@@ -6,10 +6,12 @@
 
 
 #define FUNCTION search
+#define INPUTTYPE DATATYPE
 #define RESULTTYPE DATATYPE
 
-template<typename Pr, typename S>
-void search(Pr P,/*outputs*/ DATATYPE *found)
+template <typename Pr, typename S>
+struct search {
+    void operator()(Pr P, /*inputs*/ DATATYPE *input, /*outputs*/ DATATYPE *found)
 {
 
 // allocate memory for shares
@@ -77,6 +79,7 @@ P.communicate();
 P.communicate();
 
 }
+
 // Reveal
 //
 
@@ -89,6 +92,6 @@ void print_result(DATATYPE* var)
         std::cout << std::bitset<sizeof(uint8_t)*8>(v8val[i-1]);
     printf("\n");
 }
-
+};
 
 
