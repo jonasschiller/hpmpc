@@ -62,8 +62,7 @@ Changes can be applied either directly in the file or via running ```scripts/con
    -t Total Timeout in seconds for attempting to connect to a player"
    -m VERIFY_BUFFER: How many gates should be buffered until verifying them? 0 means the data of an entire communication round is buffered "
    -k Timeout in milliseconds before attempting to connect again to a socket "
-   -y SEND_BUFFER: How many gates should be buffered until sending them to the receiving party? 0 means the data of an entire communication round is buffered
-"
+   -y SEND_BUFFER: How many gates should be buffered until sending them to the receiving party? 0 means the data of an entire communication round is buffered"
    -z RECV_BUFFER: How many receiving messages should be buffered until the main thread is signaled that data is ready? 0 means that all data of a communication round needs to be ready before the main thread is signaled.
 ```
 
@@ -111,15 +110,15 @@ To run all players locally on one machine, omit the IP addresses or set them to 
 To measure the throughput of a specific function such as 64-bit mult, AND, or secure search, first, specify the function in `config.h`. Each process prints a time for running the computation and initialization. The initialization time measures setup costs, such as establishing a connection. When choosing multiple processes or Split-Roles, we recommend timing the whole script or executable with libraries such as /bin/time. To get accurate measurements with this approach, all nodes should connect simultaneously.
 
 The throughput in AND gates per second for instance, can then be calculated as 
-![equation](https://latex.codecogs.com/gif.latex?\frac{(\text{NUM\_INPUTS}&space;\times&space;\text{DATATYPE}&space;\times&space;\text{PROCESS\_NUM}&space;\times&space;\text{Split\_Roles\_Multiplier})}{\text{Total&space;time&space;measured}})
+\[
+\frac{\text{NUM\_INPUTS} \times \text{DATATYPE} \times \text{PROCESS\_NUM} \times \text{Split\_Roles\_Multiplier}}{\text{Total time measured}}
+\]
 
 
 ### Debugging
 
 To check correctness of a protocol, the debug function (function 7) checks the correctness of all basic gates in the boolean domain. Function 8-9 does the same in the arithmetic domain using a ring size of $2^{32}$ or $2^{64}$, respectively. Note that BITLENGTH and DATTYPE specified in `config.h` need to be compatible with the computation domain. DATTYPE = 128 requires support for SSE, DATTYPE = 256 requires support for AVX-2, DATTYPE = 512, requires support for AVX-512.
-
 The following combinations are valid for 32-bit computation: BITLENGTH = 32, DATTYPE = 32/128/256/512
-
 The following combinations are valid for 64-bit computation: BITLENGTH = 64, DATTYPE = 64//256 (requires AVX-512)/512
 
 
