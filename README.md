@@ -109,12 +109,16 @@ To run all players locally on one machine, omit the IP addresses or set them to 
 
 To measure the throughput of a specific function such as 64-bit mult, AND, or secure search, first, specify the function in `config.h`. Each process prints a time for running the computation and initialization. The initialization time measures setup costs, such as establishing a connection. When choosing multiple processes or Split-Roles, we recommend timing the whole script or executable with libraries such as /bin/time. To get accurate measurements with this approach, all nodes should connect simultaneously.
 
-The throughput in AND gates per second for instance, can then be calculated as (NUM_INPUTS * DATATYPE * PROCESS_NUM * Split_Roles_Multiplier) / Total time measured. Split_Roles_Multiplier is 6 for three node settings and 24 for four node settings.
+The throughput in AND gates per second for instance, can then be calculated as:
+
+(NUM_INPUTS * DATTYPE * PROCESS_NUM * Split_Roles_Multiplier) / Total time measured.
+
+When using the Split-Roles, Split_Roles_Multiplier is 6 for three node settings and 24 for four node settings. Otherwise, the multipler is 1.
 
 
 ### Debugging
 
-To check correctness of a protocol, the debug function (function 7) checks the correctness of all basic gates in the boolean domain. Function 8-9 does the same in the arithmetic domain using a ring size of $2^{32}$ or $2^{64}$, respectively. Note that BITLENGTH and DATTYPE specified in `config.h` need to be compatible with the computation domain. DATTYPE = 128 requires support for SSE, DATTYPE = 256 requires support for AVX-2, DATTYPE = 512, requires support for AVX-512. The following combinations are valid for 32-bit computation: BITLENGTH = 32, DATTYPE = 32/128/256/512. The following combinations are valid for 64-bit computation: BITLENGTH = 64, DATTYPE = 64//256 (requires AVX-512)/512.
+To check correctness of a protocol, the debug function (function 7) checks the correctness of all basic gates in the boolean domain. Function 8-9 do the same in the arithmetic domain using a ring size of $2^{32}$ or $2^{64}$, respectively. Note that BITLENGTH and DATTYPE specified in `config.h` need to be compatible with the computation domain. DATTYPE = 128 requires support for SSE, DATTYPE = 256 requires support for AVX-2, DATTYPE = 512, requires support for AVX-512. The following combinations are valid for 32-bit computation: BITLENGTH = 32, DATTYPE = 32/128/256/512. The following combinations are valid for 64-bit computation: BITLENGTH = 64, DATTYPE = 64//256 (requires AVX-512)/512.
 
 
 
