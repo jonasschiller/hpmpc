@@ -308,7 +308,7 @@ S* z9 = new S[NUM_INPUTS];
   S1[i] = !(_tmp3[i]);
   tc26[i] = tc17[i] ^ tc20[i];
   _tmp4[i] = tc26[i] ^ z17[i];
-  S2[i] = NOT(_tmp4[i]);
+  S2[i] = !(_tmp4[i]);
   S5[i] = tc21[i] ^ tc17[i];
   }
   // Clean memory
@@ -1355,7 +1355,7 @@ void AddRoundKey__ (S a__[128][NUM_INPUTS],S b__[128][NUM_INPUTS],S c__[128][NUM
   // Instructions (body)
   for (int i = 0; i <= 127; i++) {
     for (int j = 0; j <= NUM_INPUTS-1; j++) {
-      c__[i][j] = XOR(a__[i][j],b__[i][j]);
+      c__[i][j] = a__[i][j] ^ b__[i][j];
     }
   }
 }
