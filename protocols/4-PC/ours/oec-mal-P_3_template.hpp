@@ -391,6 +391,102 @@ static void complete_A2B_S2(int k, OEC_MAL3_Share out[])
 
 }
 
+void prepare_bit2a(OEC_MAL3_Share out[])
+{
+    Datatype y0[BITLENGTH]{0};
+    y0[BITLENGTH - 1] = r1; //convert y0 to an arithemtic value
+    alignas (sizeof(Datatype)) UINT_TYPE temp2[DATTYPE];
+    unorthogonalize_boolean(y0, temp2);
+    orthogonalize_arithmetic(temp2, y0);
+    Datatype y0v[BITLENGTH]{0};
+    y0v[BITLENGTH - 1] = FUNC_XOR(r1,r0); //convert y_0 xor v to an arithemtic value
+    unorthogonalize_boolean(y0v, temp2);
+    orthogonalize_arithmetic(temp2, y0v);
+    for(int i = 0; i < BITLENGTH; i++)
+    {
+        Datatype r013 = getRandomVal(P_013);
+        Datatype m00 = OP_SUB(y0[i], r013);
+#if PROTOCOL == 12
+#if PRE == 1
+        pre_send_to_live(P_2, m00);
+#else
+        send_to_live(P_2, m00);
+#endif
+#else
+        store_compare_view(P_2, m00);
+#endif
+        
+        Datatype r123 = getRandomVal(P_123);
+        Datatype m30 = OP_SUB(y0v[i], r123);
+
+#if PRE == 1
+        pre_send_to_live(P_0, m30);
+#else
+        send_to_live(P_0, m30);
+#endif 
+        out[i].r0 = getRandomVal(P_123);
+        out[i].r1 = OP_ADD(getRandomVal(P_013),getRandomVal(P_023));
+        
+    }
+}
+
+void complete_bit2a()
+{
+}
+
+void prepare_opt_bit_injection(OEC_MAL3_Share x[], OEC_MAL3_Share out[])
+{
+    Datatype y0[BITLENGTH]{0};
+    y0[BITLENGTH - 1] = r1; //convert y0 to an arithemtic value
+    alignas (sizeof(Datatype)) UINT_TYPE temp2[DATTYPE];
+    unorthogonalize_boolean(y0, temp2);
+    orthogonalize_arithmetic(temp2, y0);
+    Datatype y0v[BITLENGTH]{0};
+    y0v[BITLENGTH - 1] = FUNC_XOR(r1,r0); //convert y_0 xor v to an arithemtic value
+    unorthogonalize_boolean(y0v, temp2);
+    orthogonalize_arithmetic(temp2, y0v);
+    for(int i = 0; i < BITLENGTH; i++)
+    {
+        Datatype r013 = getRandomVal(P_013);
+        Datatype r013_2 = getRandomVal(P_013);
+        Datatype m00 = OP_SUB(y0[i], r013);
+        Datatype m01 = OP_SUB(OP_MULT(x[i].r1, y0[i]), r013_2);
+#if PROTOCOL == 12
+#if PRE == 1
+        pre_send_to_live(P_2, m00);
+        pre_send_to_live(P_2, m01);
+#else
+        send_to_live(P_2, m00);
+        send_to_live(P_2, m01);
+#endif
+#else
+        store_compare_view(P_2, m00);
+        store_compare_view(P_2, m01);
+#endif
+        
+        Datatype r123 = getRandomVal(P_123);
+        Datatype r123_2 = getRandomVal(P_123);
+        Datatype m30 = OP_SUB(y0v[i], r123);
+        Datatype m31 = OP_SUB(OP_MULT(OP_ADD(x[i].r0,x[i].r1), y0v[i]), r123_2);
+
+#if PRE == 1
+        pre_send_to_live(P_0, m30);
+        pre_send_to_live(P_0, m31);
+#else
+        send_to_live(P_0, m30);
+        send_to_live(P_0, m31);
+#endif 
+        out[i].r0 = getRandomVal(P_123);
+        out[i].r1 = OP_ADD(getRandomVal(P_013),getRandomVal(P_023));
+        
+    }
+}
+
+void complete_opt_bit_injection()
+{
+}
+
+
 void prepare_bit_injection_S1(OEC_MAL3_Share out[])
 {
     for(int i = 0; i < BITLENGTH; i++)

@@ -110,33 +110,110 @@ void inference(DATATYPE* res)
 #elif FUNCTION_IDENTIFIER == 83 || FUNCTION_IDENTIFIER == 183 || FUNCTION_IDENTIFIER == 283 || FUNCTION_IDENTIFIER == 383
     int n_test = NUM_INPUTS*BASE_DIV, ch = 3, h = 224, w = 224, num_classes = 1000;
     auto model = AlexNet_CryptGpu<modeltype>(num_classes);
+#elif FUNCTION_IDENTIFIER == 84 || FUNCTION_IDENTIFIER == 184 || FUNCTION_IDENTIFIER == 284 || FUNCTION_IDENTIFIER == 384
+    int n_test = NUM_INPUTS*BASE_DIV, ch = 3, h = 32, w = 32, num_classes = 100;
+    auto model = DRD_C100_7K<modeltype>(num_classes);
 #endif
 
+	Config cfg;
+    cfg.mode = "test";
+    /* cfg.save_dir = "./SimpleNN/model_zoo/pthAdamModels/cifar10_ADAM_001/"; */
+    /* cfg.save_dir = "./SimpleNN/model_zoo"; */
+    /* cfg.save_dir = "./SimpleNN/model_zoo/"; */
+    /* cfg.data_dir = "./SimpleNN/dataset"; */
+    /* cfg.pretrained = "dummy.dummy"; */
+    /* cfg.image_file = "MNIST_standard_test_images.bin"; */
+    /* cfg.label_file = "MNIST_standard_test_labels.bin"; */
+    /* cfg.pretrained = "pretrained_models/LeNet5/LeNet5_MNIST_standard_best.bin"; */
+
+    /* cfg.pretrained = "old/vgg16_cifar.bin"; */
+    /* cfg.image_file = "old/cifar10-test-images.bin"; */
+    /* cfg.label_file = "old/cifar10-test-labels.bin"; */
+    /* cfg.pretrained = "VGG16_CIFAR-10_standard_best.bin"; */
+    /* cfg.image_file = "CIFAR-10_standard_test_images.bin"; */
+    /* cfg.label_file = "CIFAR-10_standard_test_labels.bin"; */
+    /* cfg.pretrained = "VGG16_CIFAR-10_custom_best.bin"; */
+    /* cfg.image_file = "CIFAR-10_custom_test_images.bin"; */
+    /* cfg.label_file = "CIFAR-10_custom_test_labels.bin"; */
+  
+
+#if MODELOWNER != -1 || DATAOWNER != -1
+// Open the configuration file
+    FILE* file = fopen("config.txt", "r");
+    if (file == NULL) {
+        std::cerr << "Error opening file" << std::endl;
+        exit(1);
+    }
+
+    // Buffer to hold each line from the file
+    char line[256];
+
+    // Read the file line by line
+    while (fgets(line, sizeof(line), file)) {
+        // Get the key part of the line
+        char* key = strtok(line, "=");
+        // Get the value part of the line
+        char* value = strtok(NULL, "\n");
+
+        if (key && value) {
+            // Compare the key and assign the value to the appropriate field in cfg
+            /* std::cout << " Key: " << key << " Value: " << value << std::endl; */
+            if (strcmp(key, "mode") == 0) {
+                cfg.mode = value;
+            }
+            else if (strcmp(key, "save_dir") == 0) {
+                cfg.save_dir = value;
+            }
+            else if (strcmp(key, "data_dir") == 0) {
+                cfg.data_dir = value;
+            }
+            else if (strcmp(key, "pretrained") == 0) {
+                cfg.pretrained = value;
+            }
+            else if (strcmp(key, "image_file") == 0) {
+                cfg.image_file = value;
+            }
+            else if (strcmp(key, "label_file") == 0) {
+                cfg.label_file = value;
+            }
+        }
+    }
+
+    // Close the file after reading
+    fclose(file);
+
+    // Print out the loaded configuration values
+    print_online("Mode: " + cfg.mode);
+    print_online("Save Directory: " + cfg.save_dir);
+    print_online("Data Directory: " + cfg.data_dir);
+    print_online("Pretrained Model: " + cfg.pretrained);
+    print_online("Image File: " + cfg.image_file);
+    print_online("Label File: " + cfg.label_file);
+
+#endif
+
+    /* fclose(file); */
+    //file should look like this:
+    //mode=test
+    //save_dir=./SimpleNN/model_zoo
+
+    cfg.batch = NUM_INPUTS*(BASE_DIV);
     
-    
+
+    /* cfg.batch = 1*BASE_DIV; */
     /* using DATATYPE = uint32_t; */
     /* const int parallel_factor = 1; */
     /* using cleartype = k_clear<A>; */
-
-    /* using Sharetype = Wrapper<DATATYPE>; */
-    /* using F = FloatFixedConverter<FLOATTYPE, UINTTYPE, ANOTHER_FRACTIONAL_VALUE> ; */
-	Config cfg;
-    cfg.mode = "test";
-    cfg.save_dir = "./SimpleNN/model_zoo";
-    cfg.data_dir = "./SimpleNN/dataset";
     /* cfg.pretrained = "model_DRD_C100_230K.bin"; */
     /* cfg.pretrained = "resnet50_cifar100.bin"; */
-    cfg.pretrained = "dummy.dummy";
-    /* cfg.pretrained = "vgg16_cifar.bin"; */
+    /* cfg.image_file = "CIFAR-100_test_images.bin"; */
+    /* cfg.label_file = "CIFAR-100_test_labels.bin"; */
     /* cfg.pretrained = "alex32.bin"; */
     /* cfg.pretrained = "lenet5_avg.pth"; */
     /* cfg.pretrained = "ResNet50_Cifar_Max.bin"; */
-    cfg.image_file = "cifar10-test-images.bin";
-    cfg.label_file = "cifar10-test-labels.bin";
-    /* cfg.image_file = "CIFAR-100_test_images.bin"; */
-    /* cfg.label_file = "CIFAR-100_test_labels.bin"; */
-    cfg.batch = NUM_INPUTS*(BASE_DIV);
-    /* cfg.batch = 1*BASE_DIV; */
+
+    /* using Sharetype = Wrapper<DATATYPE>; */
+    /* using F = FloatFixedConverter<FLOATTYPE, UINTTYPE, ANOTHER_FRACTIONAL_VALUE> ; */
 
    
     /* // Array of string literals */
@@ -163,7 +240,6 @@ void inference(DATATYPE* res)
     VecXi train_Y;
     int n_train = 60000;
 #endif
-
 
 #if JIT_VEC == 0
 #if IS_TRAINING == 1
@@ -260,9 +336,11 @@ test_loader.load(test_X, test_Y, cfg.batch, ch, h, w, cfg.shuffle_test);
     /* } */
     
     /* else { */
-std::cout << "Compiling model..." << std::endl;
+/* std::cout << "Compiling model..." << std::endl; */
+print_online("Compiling model...");
         model.compile({ cfg.batch/(BASE_DIV), ch, h, w });
-std::cout << "Loading Model Parameters..." << std::endl;
+/* std::cout << "Loading Model Parameters..." << std::endl; */
+print_online("Loading model Parameters...");
 #if PSELF == MODELOWNER
         print_online("Loading model parameters from file...");
 #endif

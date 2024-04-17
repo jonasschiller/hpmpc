@@ -237,6 +237,15 @@ static void communicate()
     communicate_live();
 }
 
+void get_random_B2A()
+{
+    for(int i = 0; i < BITLENGTH; i++)
+    {
+        p1 = getRandomVal(P_0);
+        p2 = p1;
+    }
+}
+
 
 static void prepare_A2B_S1(int m, int k, OECL1_Share in[], OECL1_Share out[])
 {
@@ -276,6 +285,93 @@ static void complete_A2B_S1(int k, OECL1_Share out[])
 static void complete_A2B_S2( int k, OECL1_Share out[])
 {
 }
+
+static void prepare_B2A( OECL1_Share z[], OECL1_Share random_mask[], OECL1_Share out[])
+{
+    // 1. Reveal z to P_1 and P_2
+    for(int i = 0; i < BITLENGTH; i++)
+    {
+        /* send_to_live(P_1, z[i].p1); */
+        send_to_live(P_2, z[i].p2); //reveal z to P_2
+        z[i].p2 = SET_ALL_ZERO(); //set mask to 0 since it is reveald
+    }
+    // 2. Share random mask
+    for(int i = 0; i < BITLENGTH; i++)
+    {
+        out[i].template prepare_receive_from<P_0>(OP_ADD, OP_SUB);
+    } 
+
+
+}
+
+static void complete_B2A(OECL1_Share z_bool[], OECL1_Share out[])
+{
+    Datatype z[BITLENGTH]; 
+    for(int i = 0; i < BITLENGTH; i++)
+        z[i] = FUNC_XOR(z_bool[i].p1, receive_from_live(P_2));
+    alignas(sizeof(Datatype)) UINT_TYPE temp2[DATTYPE];
+    unorthogonalize_boolean(z, temp2);
+    orthogonalize_arithmetic(temp2, z);
+
+    for(int i = 0; i < BITLENGTH; i++)
+    {
+        out[i].template complete_receive_from<P_0>(OP_ADD, OP_SUB);
+        out[i] = public_val(z[i]).Add(out[i], OP_SUB); // z - r
+    }
+
+}
+
+void prepare_opt_bit_injection(OECL1_Share a[], OECL1_Share out[])
+{
+    Datatype b0[BITLENGTH]{0};
+    b0[BITLENGTH - 1] = FUNC_XOR(p1,p2); //convert b to an arithemtic value
+    alignas (sizeof(Datatype)) UINT_TYPE temp2[DATTYPE];
+    unorthogonalize_boolean(b0, temp2);
+    orthogonalize_arithmetic(temp2, b0);
+    for(int i = 0; i < BITLENGTH; i++)
+    {
+        Datatype a0 = OP_ADD(a[i].p1,a[i].p2);
+        Datatype r01 = getRandomVal(P_0);
+        Datatype r01_2 = getRandomVal(P_0);
+        Datatype z1 = getRandomVal(P_0);
+        Datatype m1 = OP_SUB(OP_ADD(b0[i], b0[i]), PROMOTE(1));
+        m1 = OP_MULT(m1, OP_SUB(r01_2, OP_MULT(a0, r01)));
+        m1 = OP_SUB(m1, OP_MULT(b0[i], a[i].p2));
+        send_to_live(P_2, OP_ADD(m1, z1));
+        out[i].p1 = OP_ADD(m1,OP_MULT(a0, b0[i]));
+        out[i].p2 = z1;
+    }
+}
+
+void complete_opt_bit_injection()
+{
+        p1 = OP_ADD(p1, receive_from_live(P_2));
+}
+void prepare_bit2a(OECL1_Share out[])
+{
+    Datatype b0[BITLENGTH]{0};
+    b0[BITLENGTH - 1] = FUNC_XOR(p1,p2); // convert b_0 to an arithmetic value
+    alignas (sizeof(Datatype)) UINT_TYPE temp2[DATTYPE];
+    unorthogonalize_boolean(b0, temp2);
+    orthogonalize_arithmetic(temp2, b0);
+
+    for(int i = 0; i < BITLENGTH; i++)
+    {
+        Datatype r01 = getRandomVal(P_0);
+        Datatype m1_prime = OP_SUB(r01, OP_MULT(OP_ADD(b0[i], b0[i]), r01));
+        out[i].p1 = OP_ADD(m1_prime, b0[i]); // set share to m2' + b_0
+        out[i].p2 = getRandomVal(P_0); // set other share to z_1
+        send_to_live(P_2, OP_ADD( m1_prime, out[i].p2));
+    }
+}
+
+void complete_bit2a()
+{
+    p1 = OP_ADD(p1, receive_from_live(P_2));
+}
+
+
+
 
 void prepare_bit_injection_S1(OECL1_Share out[])
 {

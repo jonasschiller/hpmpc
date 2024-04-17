@@ -2,7 +2,6 @@
 
 #define MODELOWNER -1 //Who holds the model parameters? (-1: Dummy model parameters, P_0/P_1/P_2/P_3: Read locally from P_0/P_1/P_2/P_3 followed by secret sharing)
 #define DATAOWNER -1 //Who holds the data? (-1: Dummy dataset, P_0/P_1/P_2/P_3: Read locally from P_0/P_1/P_2/P_3 followed by secret sharing)
-
 #define PROTOCOL 5
 
 // Party ID (starting from 0)
@@ -14,7 +13,7 @@
 //13,14: Dot product, 16,17 RELU, 20,21 Conv Forward (*10), Conv Backwards (*10), 22 MatMul (*10), 23,24 Forward Backwards (Different Sizes), 25,26 Forward Backwards (Different Sizes), 27 Mat Mul Eigen, 28 max/min/argmax/argmin, 29 mult3, 30 mult 4, 31-34 dot2/dot3/dot4/dotmixed, 
 // 40-65 Various benchmarks (Elementary operations such as mult, div. Statistical operations such as avg, max. Set Intersection, AES, Private Auction, Logistic Regression, etc. Refer to programs/functions/sevare.hpp
 // 70+ Neural network architectures (LeNet, AlexNet, VGG, ResNet, etc.) on different dataset sizes (MNIST, CIFAR-10, Imagenet). Refer to programs/functions/NN.hpp
-#define FUNCTION_IDENTIFIER 42
+#define FUNCTION_IDENTIFIER 74
 
 // Registersize to use for SIMD parallelization (Bitslicing/vectorization). Supported: 1,8,16,32,64,128(SSE),256(AVX-2),512(AVX-512)
 //Info: MULT64 is supported by DATTYPE 64 and 512. MULT32 is supported for DATTYPE 32 and all DATATYPEs >= 128
@@ -24,7 +23,7 @@
 #define PRE 0
 
 // Number of inputs (depends on the problem)
-#define NUM_INPUTS 20
+#define NUM_INPUTS 10
 
 // Number of parallel processes to use
 #define PROCESS_NUM 1
@@ -36,6 +35,9 @@
 // Use SSL encrypted communication?
 #define USE_SSL 0
 
+// USE CUDA for matrix multiplication?
+#define USE_CUDA_GEMM 0
+
 // How many gates should be buffered until sending them to the receiving party? 0 means the data of an entire communication round is buffered
 #define SEND_BUFFER 10000
 
@@ -46,9 +48,10 @@
 #define VERIFY_BUFFER 16
 // Print additional info?
 #define PRINT 0
-#define PRINT_TIMINGS 0
+#define PRINT_TIMINGS 1
+#define PRINT_IMPORTANT 1
 
-#define FRACTIONAL 5 // fractional bits for fixed point numbers
+#define FRACTIONAL 5
 
 // Starting port for required port range of the sockets, must be multiple of 1000 for some applications
 #define BASE_PORT 10000
@@ -87,33 +90,46 @@ int base_port = BASE_PORT; // temporary solution
 // Bitlength of integers (currently not used)
 #define BITLENGTH 32
 // Reduced Bitlength that might be used for RELU, etc
-
+#define SIMULATE_QUANT 0 // Simulate 8-bit quantization
 #if COMPRESS == 0
 #define REDUCED_BITLENGTH_k 32
 #define REDUCED_BITLENGTH_m 0
+/* #define SIMULATE_QUANT 0 // Simulate 8-bit quantization */
 #else
 #define REDUCED_BITLENGTH_k 20
 #define REDUCED_BITLENGTH_m 12
+// Temporarily placed here
+/* #define SIMULATE_QUANT 1 // Simulate 8-bit quantization */
 #endif
 
-#if BANDWIDTH_OPTIMIZED == 0 || ONLINE_OPTIMIZED == 1 //if BANDWIDTH_OPTIMIZED and not ONLINE_OPTIMIZED we don't need MULTI_INPUT_AND gates
-#define MULTI_INPUT 1 // activate multi input Multiplication gates?
+/* #define MULTI_INPUT 1 // activate multi input Multiplication gates? */
+/* #if BANDWIDTH_OPTIMIZED == 0 || ONLINE_OPTIMIZED == 1 //if BANDWIDTH_OPTIMIZED and not ONLINE_OPTIMIZED we don't need MULTI_INPUT_AND gates */
+/* #define MULTI_INPUT 1 // activate multi input Multiplication gates? */
+/* #else */
+#define MULTI_INPUT 1
+/* #endif */
+
+#if FUNCTION_IDENTIFIER < 65
+#if FUNCTION_IDENTIFIER == 46 || FUNCTION_IDENTIFIER == 49 || FUNCTION_IDENTIFIER == 52 || FUNCTION_IDENTIFIER == 59 || FUNCTION_IDENTIFIER == 62 //RCA
+#define BANDWIDTH_OPTIMIZED 1
+#define ONLINE_OPTIMIZED 0
+#elif FUNCTION_IDENTIFIER == 47 || FUNCTION_IDENTIFIER == 50 || FUNCTION_IDENTIFIER == 53 || FUNCTION_IDENTIFIER == 60 || FUNCTION_IDENTIFIER == 63 //PPA
+#define BANDWIDTH_OPTIMIZED 0
+#define ONLINE_OPTIMIZED 0
+#elif FUNCTION_IDENTIFIER == 48 || FUNCTION_IDENTIFIER == 51 || FUNCTION_IDENTIFIER == 54 || FUNCTION_IDENTIFIER == 61 || FUNCTION_IDENTIFIER == 64 //PPA 4-Way
+#define BANDWIDTH_OPTIMIZED 0
+#define ONLINE_OPTIMIZED 1
+#endif
 #else
-#define MULTI_INPUT 0
-#endif
-
-#define SIMULATE_QUANT 0 // Simulate 8-bit quantization
-
-#if FUNCTION_IDENTIFIER > 65
 #if FUNCTION_IDENTIFIER < 100  //RCA
 #define BANDWIDTH_OPTIMIZED 1 // 1 if bandwidth optimized (e.g. Ripple Carry Adder), 0 if Latency optimized (e.g. Multi-input AND gates, Parallel Prefix Adder)
 #define ONLINE_OPTIMIZED 0 // 1 if online optimized (e.g. MULTI_INPUT AND gates), 0 if optimized for total communication (e.g. no MULTI_INPUT AND gates)
-#elif FUNCTION_IDENTIFIER < 200 // PPA4
+#elif FUNCTION_IDENTIFIER < 200 // PPA
 #define BANDWIDTH_OPTIMIZED 0 
-#define ONLINE_OPTIMIZED 1 
-#elif FUNCTION_IDENTIFIER < 300 
-#define BANDWIDTH_OPTIMIZED 0 // PPA2
 #define ONLINE_OPTIMIZED 0 
+#elif FUNCTION_IDENTIFIER < 300 
+#define BANDWIDTH_OPTIMIZED 0 // PPA 4-Way
+#define ONLINE_OPTIMIZED 1 
 #endif
 #endif
 
@@ -151,9 +167,9 @@ int base_port = BASE_PORT; // temporary solution
 #endif
 
 
-#define TRUNC_THEN_MULT 0 // 0 = mult then trunc, 1 = trunc then mult
-#define TRUNC_APPROACH 0 // 0: cut, 1: interactive
-#define TRUNC_DELAYED 0 // 0: truncate after each fixed point multiplication, 1: truncate after next ReLU (might produce errors in some networks)
+#define TRUNC_THEN_MULT 0
+#define TRUNC_APPROACH 0
+#define TRUNC_DELAYED 0
 #define COMPUTE_ARGMAX 0 // 0: skip final argmax during inference, 1: Compute final argmax during inference
 #define PUBLIC_WEIGHTS 0 // 0: weights are secretly shared, 1: weights are public
 

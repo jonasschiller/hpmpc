@@ -15,37 +15,54 @@
 
 
 template<typename Share, typename Datatype>
-void bitinj_range(XOR_Share<Datatype, Share>* bit_val, int len, sint_t<Additive_Share<Datatype, Share>>* output)
+void bit2A_range(XOR_Share<Datatype, Share>* bit_val, int len, sint_t<Additive_Share<Datatype, Share>>* output)
 {
 using S = XOR_Share<Datatype, Share>;
 using A = Additive_Share<Datatype, Share>;
 using sint = sint_t<A>;
-sint* t1 = new sint[len];
-sint* t2 = new sint[len];
 for (int i = 0; i < len; i++)
 {
-    bit_val[i].prepare_bit_injection_S1(t1[i].get_share_pointer());
-    bit_val[i].prepare_bit_injection_S2(t2[i].get_share_pointer());
+    bit_val[i].prepare_bit2a(output[i].get_share_pointer());
 }
 Share::communicate();
 for (int i = 0; i < len; i++)
 {
-    t1[i].complete_bit_injection_S1();
-    t2[i].complete_bit_injection_S2();
+    output[i].complete_bit2a();
 }
-for (int i = 0; i < len; i++)
-{
-    output[i].prepare_XOR(t1[i], t2[i]);
 }
-Share::communicate();
-for (int i = 0; i < len; i++)
-{
-    output[i].complete_XOR(t1[i], t2[i]);
-}
-delete[] t1;
-delete[] t2;
 
-}
+/* template<typename Share, typename Datatype> */
+/* void bit2A_range(XOR_Share<Datatype, Share>* bit_val, int len, sint_t<Additive_Share<Datatype, Share>>* output) */
+/* { */
+/* using S = XOR_Share<Datatype, Share>; */
+/* using A = Additive_Share<Datatype, Share>; */
+/* using sint = sint_t<A>; */
+/* sint* t1 = new sint[len]; */
+/* sint* t2 = new sint[len]; */
+/* for (int i = 0; i < len; i++) */
+/* { */
+/*     bit_val[i].prepare_bit_injection_S1(t1[i].get_share_pointer()); */
+/*     bit_val[i].prepare_bit_injection_S2(t2[i].get_share_pointer()); */
+/* } */
+/* Share::communicate(); */
+/* for (int i = 0; i < len; i++) */
+/* { */
+/*     t1[i].complete_bit_injection_S1(); */
+/*     t2[i].complete_bit_injection_S2(); */
+/* } */
+/* for (int i = 0; i < len; i++) */
+/* { */
+/*     output[i].prepare_XOR(t1[i], t2[i]); */
+/* } */
+/* Share::communicate(); */
+/* for (int i = 0; i < len; i++) */
+/* { */
+/*     output[i].complete_XOR(t1[i], t2[i]); */
+/* } */
+/* delete[] t1; */
+/* delete[] t2; */
+
+/* } */
 
 // compute msbs of a range of arithemtic shares
 template<int bm, int bk, typename Datatype, typename Share>
@@ -146,7 +163,7 @@ using sint = sint_t<A>;
 
     // get arithmetic version of msb to update values
     auto max_idx = new sint[batch_size*len];
-    bitinj_range(msb, batch_size*len, max_idx);
+    bit2A_range(msb, batch_size*len, max_idx);
     for(int b = 0; b < batch_size; b++)
     { 
     for(int i = 0; i < counter; i++)
@@ -315,7 +332,7 @@ using A = Additive_Share<Datatype, Share>;
 using sint = sint_t<A>;
 auto tmp_output = new S[batch_size*len];
 argmax_argmin<bm,bk>(begin, len, tmp_output, batch_size, want_max);
-bitinj_range(tmp_output, len*batch_size, output); //TODO: remove this overhead somehow?
+bit2A(tmp_output, len*batch_size, output); //TODO: remove this overhead somehow?
 delete[] tmp_output;
 }
     

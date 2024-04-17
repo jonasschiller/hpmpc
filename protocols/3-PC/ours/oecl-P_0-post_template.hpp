@@ -29,6 +29,11 @@ static void communicate()
     communicate_live();
 /* #endif */
 }
+
+void get_random_B2A()
+{
+
+}
     
     template <int id,typename func_add, typename func_sub>
 void prepare_receive_from(func_add ADD, func_sub SUB)
@@ -165,6 +170,33 @@ static void complete_A2B_S2(int k, OECL0_POST_Share out[])
 {
 
 }
+
+void prepare_opt_bit_injection(OECL0_POST_Share x[], OECL0_POST_Share out[])
+{
+}
+
+void complete_opt_bit_injection()
+{
+}
+
+void prepare_bit2a(OECL0_POST_Share out[])
+{
+}
+
+void complete_bit2a()
+{
+}
+
+static void prepare_B2A( OECL0_POST_Share z[], OECL0_POST_Share random_mask[], OECL0_POST_Share out[])
+{
+}
+
+static void complete_B2A(OECL0_POST_Share z[], OECL0_POST_Share out[])
+{
+}
+
+
+
 
 void prepare_bit_injection_S1(OECL0_POST_Share out[])
 {

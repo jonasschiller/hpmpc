@@ -31,6 +31,7 @@
 #include "programs/functions/cryptgpu_piranha_bench.hpp"
 #endif
 
+
 #include "utils/xorshift.h"
 
 #include "config.h"
@@ -355,8 +356,8 @@ int ret;
 
 
     // waiting until all threads connected
-
     /* printf("m: locking conn \n"); */
+    print("Initialized circuit, waiting for all parties to connect ... \n");
     pthread_mutex_lock(&mtx_connection_established);
     /* printf("m: locked conn \n"); */
     while (num_successful_connections < 2 * (num_players -1)) {
@@ -491,7 +492,6 @@ double dummy_time = 0.00;
 #if LIVE == 1
     live_circuit();
 #endif
-
 }
 
 

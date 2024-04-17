@@ -505,6 +505,120 @@ static void complete_A2B_S2(int k, OEC_MAL2_Share out[])
 
 }
 
+void prepare_bit2a(OEC_MAL2_Share out[])
+{
+    Datatype b0[BITLENGTH]{0};
+    b0[BITLENGTH - 1] = v; //convert b0 to an arithemtic value
+    alignas (sizeof(Datatype)) UINT_TYPE temp2[DATTYPE];
+    unorthogonalize_boolean(b0, temp2);
+    orthogonalize_arithmetic(temp2, b0);
+    Datatype b0v[BITLENGTH]{0};
+    b0v[BITLENGTH - 1] = FUNC_XOR(v,m); //convert b0v to an arithemtic value
+    unorthogonalize_boolean(b0v, temp2);
+    orthogonalize_arithmetic(temp2, b0v);
+    for(int i = 0; i < BITLENGTH; i++)
+    {
+#if PROTOCOL != 12
+#if PRE == 1
+        Datatype m00 = pre_receive_from_live(P_0);
+#else
+        Datatype m00 = receive_from_live(P_0);
+#endif
+        store_compare_view(P_3, m00);
+#else
+#if PRE == 1
+        Datatype m00 = pre_receive_from_live(P_3);
+#else
+        Datatype m00 = receive_from_live(P_3);
+#endif
+        store_compare_view(P_0, m00);
+#endif
+         
+        Datatype tmp = OP_SUB(m00, OP_MULT(OP_ADD(b0[i], b0[i]), m00));
+        Datatype out_r = getRandomVal(P_023);
+        Datatype m21 = OP_ADD(out_r, tmp);
+        send_to_live(P_1, m21); //m21
+       
+        Datatype r123 = getRandomVal(P_123);
+        
+        tmp = OP_SUB(r123, OP_MULT(OP_ADD(b0v[i], b0v[i]), r123));
+        out[i].m = getRandomVal(P_123);
+        send_to_live(P_0, OP_ADD(out[i].m, tmp)); //m20
+        out[i].r = out_r;
+        out[i].v = OP_ADD(b0[i], m21);
+    }
+}
+
+void complete_bit2a()
+{
+        Datatype m1 = receive_from_live(P_1);
+        v = OP_ADD(v, m1);
+        store_compare_view(P_012, OP_ADD(v,m));
+}
+
+void prepare_opt_bit_injection(OEC_MAL2_Share a[], OEC_MAL2_Share out[])
+{
+    Datatype b0[BITLENGTH]{0};
+    b0[BITLENGTH - 1] = v; //convert b0 to an arithemtic value
+    alignas (sizeof(Datatype)) UINT_TYPE temp2[DATTYPE];
+    unorthogonalize_boolean(b0, temp2);
+    orthogonalize_arithmetic(temp2, b0);
+    Datatype b0v[BITLENGTH]{0};
+    b0v[BITLENGTH - 1] = FUNC_XOR(v,m); //convert b0v to an arithemtic value
+    unorthogonalize_boolean(b0v, temp2);
+    orthogonalize_arithmetic(temp2, b0v);
+    for(int i = 0; i < BITLENGTH; i++)
+    {
+#if PROTOCOL != 12
+#if PRE == 1
+        Datatype m00 = pre_receive_from_live(P_0);
+        Datatype m01 = pre_receive_from_live(P_0);
+#else
+        Datatype m00 = receive_from_live(P_0);
+        Datatype m01 = receive_from_live(P_0);
+#endif
+        store_compare_view(P_3, m00);
+        store_compare_view(P_3, m01);
+#else
+#if PRE == 1
+        Datatype m00 = pre_receive_from_live(P_3);
+        Datatype m01 = pre_receive_from_live(P_3);
+#else
+        Datatype m00 = receive_from_live(P_3);
+        Datatype m01 = receive_from_live(P_3);
+#endif
+        store_compare_view(P_0, m00);
+        store_compare_view(P_0, m01);
+#endif
+         
+        Datatype tmp = OP_SUB(OP_ADD(b0[i], b0[i]), PROMOTE(1));
+        tmp = OP_MULT(tmp, OP_SUB(m01, OP_MULT(a[i].v, m00)));
+        tmp = OP_SUB(tmp, OP_MULT(b0[i], a[i].r));
+        Datatype out_r = getRandomVal(P_023);
+        Datatype m21 = OP_ADD(out_r, tmp);
+        send_to_live(P_1, m21); //m21
+       
+        Datatype r123 = getRandomVal(P_123);
+        Datatype r123_2 = getRandomVal(P_123);
+        Datatype a0u = OP_ADD(a[i].v, a[i].m); // set share to a_0 + u
+        
+        tmp = OP_SUB(OP_ADD(b0v[i], b0v[i]), PROMOTE(1));
+        tmp = OP_MULT(tmp, OP_SUB(r123_2, OP_MULT(a0u, r123)));
+        tmp = OP_SUB(tmp, OP_MULT(b0v[i], a[i].m));
+        out[i].m = getRandomVal(P_123);
+        send_to_live(P_0, OP_ADD(out[i].m, tmp)); //m20
+        out[i].r = out_r;
+        out[i].v = OP_ADD(OP_MULT(a[i].v, b0[i]), m21);
+    }
+}
+
+void complete_opt_bit_injection()
+{
+        Datatype m1 = receive_from_live(P_1);
+        v = OP_ADD(v, m1);
+        store_compare_view(P_012, OP_ADD(v,m));
+}
+
 void prepare_bit_injection_S1(OEC_MAL2_Share out[])
 {
     Datatype temp[BITLENGTH]{0};
@@ -554,7 +668,7 @@ static void complete_bit_injection_S2(OEC_MAL2_Share out[])
         Datatype m0 = pre_receive_from_live(P_0);
         #endif
         store_compare_view(P_3, m0);
-#else
+        #else
         #if PRE == 0
         Datatype m0 = receive_from_live(P_3);
         #else

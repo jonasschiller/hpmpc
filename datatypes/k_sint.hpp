@@ -23,6 +23,10 @@ public:
         init(temp_u);
         }
 
+    sint_t(DATATYPE value[BITLENGTH]) {
+        for (int i = 0; i < BITLENGTH; i++) 
+          shares[i] = Share::public_val(value[i]);
+        }
 
     template<int id>
     sint_t(UINT_TYPE value[DATTYPE]) {
@@ -171,6 +175,20 @@ public:
         return result;
         }
 
+        sint_t prepare_mult_public_fixed_dat(const DATATYPE other) const {
+        sint_t result;
+        for(int i = 0; i < BITLENGTH; ++i) {
+            result[i] = shares[i].prepare_mult_public_fixed_dat(other);
+        }
+        return result;
+        }
+
+        void prepare_mult_public_fixed(const UINT_TYPE other) {
+        for(int i = 0; i < BITLENGTH; ++i) {
+            shares[i].prepare_mult_public_fixed(other);
+        }
+        }
+
         void operator*=(const UINT_TYPE other) {
         for(int i = 0; i < BITLENGTH; ++i) {
             shares[i].prepare_mult_public_fixed(other);
@@ -187,6 +205,14 @@ public:
         sint_t result;
         for(int i = 0; i < BITLENGTH; ++i) {
             result[i] = shares[i].mult_public(other);
+        }
+        return result;
+        }
+
+        sint_t mult_public_dat(const DATATYPE other) const {
+        sint_t result;
+        for(int i = 0; i < BITLENGTH; ++i) {
+            result[i] = shares[i].mult_public_dat(other);
         }
         return result;
         }
@@ -328,6 +354,16 @@ public:
             Share::complete_bit_injection_S1(shares);
         }
 
+        void complete_opt_bit_injection() {
+            for(int i = 0; i < BITLENGTH; ++i) 
+                shares[i].complete_opt_bit_injection();
+        }
+
+        void complete_bit2a() {
+            for(int i = 0; i < BITLENGTH; ++i) 
+                shares[i].complete_bit2a();
+        }
+
         void mask_and_send_dot()
         {
             for(int i = 0; i < BITLENGTH; ++i) 
@@ -375,7 +411,19 @@ public:
                 shares[i].complete_trunc_2k_inputs(rmk2.shares[i], rmsb.shares[i], c.shares[i], c_prime.shares[i]);
         }
 
+#if TRUNC_APPROACH == 2
+        template<typename X, typename A>
+        static void prepare_B2A(X z[], X r[], A out[])
+        {
+            Share::prepare_B2A(z, r, out); 
+        }
 
+        template<typename X, typename A>
+        static void complete_B2A(X z[], A out[])
+        {
+            Share::complete_B2A(z, out); 
+        }
+#endif
 };
 
 

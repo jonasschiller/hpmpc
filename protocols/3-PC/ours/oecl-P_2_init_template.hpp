@@ -183,6 +183,36 @@ else if constexpr(id == P_0)
 }
 
 
+void get_random_B2A()
+{
+
+}
+
+static void prepare_B2A( OECL2_init z[], OECL2_init random_mask[], OECL2_init out[])
+{
+    for(int i = 0; i < BITLENGTH; i++)
+    {
+        send_to_(P_1);
+    } 
+    for(int i = 0; i < BITLENGTH; i++)
+    {
+        out[i].template prepare_receive_from<P_0>(SET_ALL_ZERO(), OP_ADD, OP_SUB);
+    }
+
+}
+
+static void complete_B2A(OECL2_init out[], OECL2_init z[])
+{
+    for(int i = 0; i < BITLENGTH; i++)
+    {
+        receive_from_(P_1);
+    }
+    for(int i = 0; i < BITLENGTH; i++)
+    {
+        out[i].template complete_receive_from<P_0>(OP_ADD, OP_SUB);
+    }
+
+}
 
 
 static void send()
@@ -231,6 +261,44 @@ static void complete_A2B_S2( int k, OECL2_init out[])
         receive_from_(P_0);
         #endif
     }
+}
+
+void prepare_opt_bit_injection(OECL2_init x[], OECL2_init out[])
+{
+    for(int i = 0; i < BITLENGTH; i++)
+    {
+#if PRE == 1
+        pre_receive_from_(P_0);
+        pre_receive_from_(P_0);
+#else
+        receive_from_(P_0);
+        receive_from_(P_0);
+#endif
+        send_to_(P_1);
+    }
+}
+
+void complete_opt_bit_injection()
+{
+        receive_from_(P_1);
+}
+
+void prepare_bit2a(OECL2_init out[])
+{
+    for(int i = 0; i < BITLENGTH; i++)
+    {
+#if PRE == 1
+        pre_receive_from_(P_0);
+#else
+        receive_from_(P_0);
+#endif
+        send_to_(P_1);
+    }
+}
+
+void complete_bit2a()
+{
+    receive_from_(P_1);
 }
 
 void prepare_bit_injection_S1( OECL2_init out[])
